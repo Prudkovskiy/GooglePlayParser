@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">GooglePlayParser\main.go (96.2%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "encoding/hex"
+        "encoding/json"
+        "fmt"
+        "regexp"
+        "strings"
+        "sync"
+
+        "github.com/PuerkitoBio/goquery"
+)
+
+var (
+        // URL stores the host
+        URL = "https://play.google.com"
+        // Attributes store values of fields
+        nameAttr     = "name"
+        authorAttr   = "document-subtitle primary"
+        categoryAttr = "document-subtitle category"
+        descriptAttr = "description"
+        ratingAttr   = "tiny-star star-rating-non-editable-container"
+        numberAttr   = "reviews-stats"
+        updateAttr   = "datePublished"
+        appAttr      = "card-click-target"
+)
+
+// Application contains all the required fields
+type Application struct {
+        name     string
+        url      string
+        author   string
+        category string
+        descript string
+        rating   string
+        number   string
+        update   string
+}
+
+// GetAppData get data from app page
+func GetAppData(link, word string) (Application, bool, error) <span class="cov8" title="1">{
+        flag := false // check if the app contains our word
+        doc, err := goquery.NewDocument(link)
+        if err != nil </span><span class="cov0" title="0">{
+                var app Application
+                return app, flag, fmt.Errorf("сan't open the app page, please check your Internet connection")
+        }</span>
+
+        <span class="cov8" title="1">var data Application
+        data.url = link
+        wg := &amp;sync.WaitGroup{}
+        wg.Add(1)
+        go func(d *goquery.Document) </span><span class="cov8" title="1">{
+                defer wg.Done()
+                d.Find("a").Each(func(i int, s *goquery.Selection) </span><span class="cov8" title="1">{
+                        if class, ok := s.Attr("class"); ok </span><span class="cov8" title="1">{
+                                if class == authorAttr </span><span class="cov8" title="1">{
+                                        data.author = s.Text()
+                                }</span><span class="cov8" title="1"> else if class == categoryAttr </span><span class="cov8" title="1">{
+                                        data.category = s.Text()
+                                }</span>
+                        }
+                })
+        }(doc)
+
+        <span class="cov8" title="1">wg.Add(1)
+        go func(d *goquery.Document) </span><span class="cov8" title="1">{
+                defer wg.Done()
+                d.Find("div").Each(func(i int, s *goquery.Selection) </span><span class="cov8" title="1">{
+                        class, _ := s.Attr("class")
+                        if class == "main-content" </span><span class="cov8" title="1">{
+                                s.Children().Find("div").Each(func(j int, kid *goquery.Selection) </span><span class="cov8" title="1">{
+                                        if info, ok := kid.Attr("itemprop"); ok </span><span class="cov8" title="1">{
+                                                if info == descriptAttr </span><span class="cov8" title="1">{
+                                                        data.descript = kid.Text()
+                                                        if strings.Contains(data.descript, word) </span><span class="cov8" title="1">{
+                                                                flag = true
+                                                        }</span>
+                                                }<span class="cov8" title="1"> else if info == nameAttr </span><span class="cov8" title="1">{
+                                                        data.name = kid.Text()
+                                                        if strings.Contains(data.name, word) </span><span class="cov8" title="1">{
+                                                                flag = true
+                                                        }</span>
+                                                }<span class="cov8" title="1"> else if info == updateAttr </span><span class="cov8" title="1">{
+                                                        data.update = kid.Text()
+                                                }</span>
+                                        }<span class="cov8" title="1"> else if info, ok = kid.Attr("class"); ok </span><span class="cov8" title="1">{
+                                                if info == ratingAttr </span><span class="cov8" title="1">{
+                                                        data.rating, _ = kid.Attr("aria-label")
+                                                }</span><span class="cov8" title="1"> else if info == numberAttr </span><span class="cov8" title="1">{
+                                                        data.number = kid.Text()
+                                                }</span>
+                                        }
+                                })
+                        }
+                })
+        }(doc)
+        <span class="cov8" title="1">wg.Wait()
+
+        return data, flag, nil</span>
+}
+
+// ParseURL - main function of parsing
+func ParseURL(path, word string) ([]Application, error) <span class="cov8" title="1">{
+        // make goquery document
+        doc, err := goquery.NewDocument(path)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("сan't open the website, please check your Internet connection")
+        }</span>
+
+        <span class="cov8" title="1">allinfo := []Application{}
+        wg := &amp;sync.WaitGroup{}
+        // find selectors with tag &lt;a&gt;
+        doc.Find("a").Each(func(i int, s *goquery.Selection) </span><span class="cov8" title="1">{
+                class, _ := s.Attr("class")
+                // find the Application link and go through it
+                if class == appAttr </span><span class="cov8" title="1">{
+                        link, _ := s.Attr("href")
+                        link = URL + link
+                        wg.Add(1)
+                        go func() </span><span class="cov8" title="1">{
+                                defer wg.Done()
+                                // parse app page and check if it contains our word
+                                if data, ok, err := GetAppData(link, word); ok </span><span class="cov8" title="1">{
+                                        if err == nil </span><span class="cov8" title="1">{
+                                                allinfo = append(allinfo, data)
+                                        }</span>
+                                }
+                        }()
+                }
+        })
+        <span class="cov8" title="1">wg.Wait()
+        return allinfo, nil</span>
+}
+
+// MakeRequestURL create search-url based on entered word
+func MakeRequestURL(word string) string <span class="cov8" title="1">{
+        binary := []byte(word)
+        encodedStr := strings.ToUpper(hex.EncodeToString(binary)) // string like D0A1D0B1...
+        re := regexp.MustCompile("..")                            // make regex expression
+        slice := re.FindAllString(encodedStr, -1)                 // string split like [D0 A1 D0 B1 ...]
+        encodedStr = strings.Join(slice, "%")                     // now the string is D0%A1%D0%B1%...
+        requestURL := URL + "/store/search?q=%" + encodedStr + "&amp;c=apps"
+        return requestURL
+}</span>
+
+// ConvertData -&gt; to json
+func ConvertData(data []Application) []byte <span class="cov8" title="1">{
+        dict := make(map[int][]string, len(data))
+        for idx, app := range data </span><span class="cov8" title="1">{
+                dict[idx] = append(dict[idx], app.name)
+                dict[idx] = append(dict[idx], app.url)
+                dict[idx] = append(dict[idx], app.author)
+                dict[idx] = append(dict[idx], app.category)
+                dict[idx] = append(dict[idx], app.descript)
+                dict[idx] = append(dict[idx], app.rating)
+                dict[idx] = append(dict[idx], app.number)
+                dict[idx] = append(dict[idx], app.update)
+        }</span>
+        <span class="cov8" title="1">result, _ := json.Marshal(&amp;dict)
+        return result</span>
+}
+
+func main() <span class="cov0" title="0">{
+        // stop := false // flag, which stops main loop
+        // // main loop of the program
+        // for !stop {
+        //         fmt.Println("Введите название приложения:")
+        //         scanner := bufio.NewScanner(os.Stdin)
+        //         scanner.Scan()
+        //         fmt.Println("Идет сканирование Google Play ...")
+        //         path := MakeRequestURL(scanner.Text())
+        //         data, err := ParseURL(path, scanner.Text())
+        //         if err != nil {
+        //                 fmt.Println(err.Error())
+        //                 return
+        //         }
+        //         fmt.Println("Сканирование завершено, число найденных приложений =", len(data))
+        //         fmt.Println("Сохранить данные в формате json в файл? [yes/no]")
+        //         scanner = bufio.NewScanner(os.Stdin)
+        //         scanner.Scan()
+        //         if strings.ToLower(scanner.Text()) == "yes" {
+        //                 flag := false
+        //                 for !flag {
+        //                         fmt.Println("Введите имя файла")
+        //                         scanner = bufio.NewScanner(os.Stdin)
+        //                         scanner.Scan()
+        //                         if scanner.Text() != "" {
+        //                                 file, _ := os.Create(scanner.Text())
+        //                                 // convert data to json
+        //                                 jsonData := ConvertData(data)
+        //                                 file.Write(jsonData)
+        //                                 file.Close()
+        //                                 flag = true
+        //                         }
+        //                 }
+        //         }
+        //         fmt.Println("Вывести данные на экран? [yes/no]")
+        //         scanner = bufio.NewScanner(os.Stdin)
+        //         scanner.Scan()
+        //         if strings.ToLower(scanner.Text()) == "yes" {
+        //                 for _, info := range data {
+        //                         fmt.Println("Название:             ", info.name)
+        //                         fmt.Println("URL:                   ", info.url)
+        //                         fmt.Println("Автор:                ", info.author)
+        //                         fmt.Println("Категория:            ", info.category)
+        //                         fmt.Println("Описание:\n", info.descript)
+        //                         fmt.Println("     ", info.rating)
+        //                         fmt.Println("            ", info.number)
+        //                         fmt.Println("Последнее обновление: ", info.update)
+        //                         fmt.Println()
+        //                 }
+        //                 fmt.Println("Число результатов =", len(data))
+        //         }
+        //         fmt.Println("Получить данные по другому запросу? [yes/no]")
+        //         scanner = bufio.NewScanner(os.Stdin)
+        //         scanner.Scan()
+        //         if strings.ToLower(scanner.Text()) == "no" {
+        //                 stop = true
+        //         }
+        // }
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
