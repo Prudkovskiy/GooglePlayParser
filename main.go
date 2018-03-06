@@ -42,8 +42,12 @@ type Application struct {
 
 // GetAppData get data from app page
 func GetAppData(link, word string) (Application, bool, error) {
-	flag := false                         // check if the app contains our word
-	doc, err := goquery.NewDocument(link) // make goquery document
+	word1 := strings.ToUpper(word)
+	word2 := strings.ToLower(word)
+	word3 := strings.ToUpper(word[0:2]) + word[2:] // сбербанк -> Сбербанк (ru)
+	word4 := strings.ToUpper(word[0:1]) + word[1:] // sberbank -> Sberbank (en)
+	flag := false                                  // check if the app contains our word
+	doc, err := goquery.NewDocument(link)          // make goquery document
 	if err != nil {
 		var app Application
 		return app, flag, fmt.Errorf("сan't open the app page, please check your Internet connection")
@@ -80,12 +84,22 @@ func GetAppData(link, word string) (Application, bool, error) {
 					if info, ok := kid.Attr("itemprop"); ok {
 						if info == descriptAttr {
 							data.descript = kid.Text()
-							if strings.Contains(data.descript, word) {
+							ok1 := strings.Contains(data.descript, word1)
+							ok2 := strings.Contains(data.descript, word2)
+							ok3 := strings.Contains(data.descript, word3)
+							ok4 := strings.Contains(data.descript, word4)
+							ok5 := strings.Contains(data.descript, word)
+							if ok1 || ok2 || ok3 || ok4 || ok5 {
 								flag = true
 							}
 						} else if info == nameAttr {
 							data.name = kid.Text()
-							if strings.Contains(data.name, word) {
+							ok1 := strings.Contains(data.name, word1)
+							ok2 := strings.Contains(data.name, word2)
+							ok3 := strings.Contains(data.name, word3)
+							ok4 := strings.Contains(data.name, word4)
+							ok5 := strings.Contains(data.name, word)
+							if ok1 || ok2 || ok3 || ok4 || ok5 {
 								flag = true
 							}
 						} else if info == updateAttr {
@@ -155,7 +169,7 @@ func ConvertData(data []Application) []byte {
 	dict := make(map[string][]string, len(data))
 
 	for _, app := range data {
-		key := fmt.Sprintf("%x", md5.Sum([]byte(app.url)))
+		key := fmt.Sprintf("%x", md5.Sum([]byte(app.url+app.name)))
 		if _, ok := dict[key]; ok {
 			continue
 		}
@@ -187,10 +201,10 @@ func main() {
 			return
 		}
 		fmt.Println("Сканирование завершено, число найденных приложений =", len(data))
-		fmt.Println("Сохранить данные в формате json в файл? [yes/no]")
+		fmt.Println("Сохранить данные в формате json в файл? [Y/N]")
 		scanner = bufio.NewScanner(os.Stdin)
 		scanner.Scan()
-		if strings.ToLower(scanner.Text()) == "yes" {
+		if strings.ToLower(scanner.Text()) == "y" {
 			flag := false
 			for !flag {
 				fmt.Println("Введите имя файла")
@@ -206,10 +220,10 @@ func main() {
 				}
 			}
 		}
-		fmt.Println("Вывести данные на экран? [yes/no]")
+		fmt.Println("Вывести данные на экран? [Y/N]")
 		scanner = bufio.NewScanner(os.Stdin)
 		scanner.Scan()
-		if strings.ToLower(scanner.Text()) == "yes" {
+		if strings.ToLower(scanner.Text()) == "y" {
 			for _, info := range data {
 				fmt.Println("Название:             ", info.name)
 				fmt.Println("URL:                   ", info.url)
@@ -223,10 +237,10 @@ func main() {
 			}
 			fmt.Println("Число результатов =", len(data))
 		}
-		fmt.Println("Получить данные по другому запросу? [yes/no]")
+		fmt.Println("Получить данные по другому запросу? [Y/N]")
 		scanner = bufio.NewScanner(os.Stdin)
 		scanner.Scan()
-		if strings.ToLower(scanner.Text()) == "no" {
+		if strings.ToLower(scanner.Text()) == "n" {
 			stop = true
 		}
 	}
