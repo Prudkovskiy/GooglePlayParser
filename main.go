@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -151,16 +152,21 @@ func MakeRequestURL(word string) string {
 
 // ConvertData -> to json
 func ConvertData(data []Application) []byte {
-	dict := make(map[int][]string, len(data))
-	for idx, app := range data {
-		dict[idx] = append(dict[idx], app.name)
-		dict[idx] = append(dict[idx], app.url)
-		dict[idx] = append(dict[idx], app.author)
-		dict[idx] = append(dict[idx], app.category)
-		dict[idx] = append(dict[idx], app.descript)
-		dict[idx] = append(dict[idx], app.rating)
-		dict[idx] = append(dict[idx], app.number)
-		dict[idx] = append(dict[idx], app.update)
+	dict := make(map[string][]string, len(data))
+
+	for _, app := range data {
+		key := fmt.Sprintf("%x", md5.Sum([]byte(app.url)))
+		if _, ok := dict[key]; ok {
+			continue
+		}
+		dict[key] = append(dict[key], app.name)
+		dict[key] = append(dict[key], app.url)
+		dict[key] = append(dict[key], app.author)
+		dict[key] = append(dict[key], app.category)
+		dict[key] = append(dict[key], app.descript)
+		dict[key] = append(dict[key], app.rating)
+		dict[key] = append(dict[key], app.number)
+		dict[key] = append(dict[key], app.update)
 	}
 	result, _ := json.Marshal(&dict)
 	return result
